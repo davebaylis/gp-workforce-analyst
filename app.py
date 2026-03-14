@@ -235,7 +235,6 @@ def run_query(question, workforce_df, pop_df, client):
     parsed = json.loads(raw)
     code = parsed.get("code", "")
     chart_code = parsed.get("chart_code")
-    explanation = parsed.get("explanation", "")
 
     exec_globals = {
         "workforce_df": workforce_df,
@@ -245,6 +244,32 @@ def run_query(question, workforce_df, pop_df, client):
 
     exec(code, exec_globals)
     result = exec_globals.get("result")
+
+    # Generate explanation AFTER we have the actual result
+    try:
+        if isinstance(result, (int, float)):
+            result_str = f"{result:,}"
+        elif hasattr(result, "to_string"):
+            result_str = result.to_string(index=False)[:500]
+        else:
+            result_str = str(result)
+    except Exception:
+        result_str = str(result)
+
+    explanation_response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=150,
+        messages=[{
+            "role": "user",
+            "content": (f"Question: {question}
+"
+                       f"Result: {result_str}
+"
+                       f"Write a single plain-English sentence explaining this result. "
+                       f"Include the actual number from the result. No markdown.")
+        }]
+    )
+    explanation = explanation_response.content[0].text.strip()
 
     fig = None
     if chart_code:
