@@ -391,20 +391,9 @@ def main():
                     st.dataframe(result, use_container_width=True)
                 elif isinstance(result, pd.Series):
                     st.dataframe(result.to_frame(), use_container_width=True)
-                elif result is not None:
-                    if isinstance(result, dict):
-                        st.dataframe(pd.DataFrame([result]), use_container_width=True)
-                    else:
-                        try:
-                            display_val = f"{int(result):,}"
-                        except (ValueError, TypeError):
-                            display_val = str(result)
-                        st.markdown(f"""
-                        <div class="result-box">
-                            <span style="font-size:36px; font-weight:600;
-                                         color:#005EB8;">{display_val}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
+                elif isinstance(result, dict):
+                    st.dataframe(pd.DataFrame([result]), use_container_width=True)
+                # Single values (int, float, str) are already in the explanation — no second box needed
 
             except json.JSONDecodeError:
                 st.error("The AI returned an unexpected response. "
