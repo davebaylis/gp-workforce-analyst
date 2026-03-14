@@ -208,6 +208,9 @@ Return ONLY a JSON object with these keys:
 ## Rules:
 - Headcount = count rows (len() or .shape[0]) NOT unique UNIQUE_IDENTIFIER values
 - FTE = sum FTE column in workforce_df
+- result must be a single value (int, float, DataFrame, or Series) — NEVER a dict or tuple
+- For simple count questions, result = a single integer
+- For comparison questions, result = a DataFrame with named columns
 - Nurses = STAFF_GROUP == 'Nurses'
 - GPs = STAFF_GROUP == 'GP'
 - South West = ICB_CODE.isin({SW_ICB_CODES})
@@ -389,16 +392,19 @@ def main():
                 elif isinstance(result, pd.Series):
                     st.dataframe(result.to_frame(), use_container_width=True)
                 elif result is not None:
-                    try:
-                        display_val = f"{int(result):,}"
-                    except (ValueError, TypeError):
-                        display_val = str(result)
-                    st.markdown(f"""
-                    <div class="result-box">
-                        <span style="font-size:36px; font-weight:600;
-                                     color:#005EB8;">{display_val}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    if isinstance(result, dict):
+                        st.dataframe(pd.DataFrame([result]), use_container_width=True)
+                    else:
+                        try:
+                            display_val = f"{int(result):,}"
+                        except (ValueError, TypeError):
+                            display_val = str(result)
+                        st.markdown(f"""
+                        <div class="result-box">
+                            <span style="font-size:36px; font-weight:600;
+                                         color:#005EB8;">{display_val}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
 
             except json.JSONDecodeError:
                 st.error("The AI returned an unexpected response. "
