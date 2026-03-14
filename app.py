@@ -206,7 +206,7 @@ Return ONLY a JSON object with these keys:
   "explanation": 1-2 sentence plain English explanation of the result
 
 ## Rules:
-- Headcount = count unique UNIQUE_IDENTIFIER values in workforce_df
+- Headcount = count rows (len() or .shape[0]) NOT unique UNIQUE_IDENTIFIER values
 - FTE = sum FTE column in workforce_df
 - Nurses = STAFF_GROUP == 'Nurses'
 - GPs = STAFF_GROUP == 'GP'
@@ -366,10 +366,14 @@ def main():
                 elif isinstance(result, pd.Series):
                     st.dataframe(result.to_frame(), use_container_width=True)
                 elif result is not None:
+                    try:
+                        display_val = f"{int(result):,}"
+                    except (ValueError, TypeError):
+                        display_val = str(result)
                     st.markdown(f"""
                     <div class="result-box">
                         <span style="font-size:36px; font-weight:600;
-                                     color:#005EB8;">{result:,}</span>
+                                     color:#005EB8;">{display_val}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
