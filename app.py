@@ -256,18 +256,16 @@ def run_query(question, workforce_df, pop_df, client):
     except Exception:
         result_str = str(result)
 
+    prompt = (
+        "Question: " + question + "\n" +
+        "Result: " + result_str + "\n" +
+        "Write a single plain-English sentence explaining this result. "
+        "Include the actual number from the result. No markdown."
+    )
     explanation_response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=150,
-        messages=[{
-            "role": "user",
-            "content": (f"Question: {question}
-"
-                       f"Result: {result_str}
-"
-                       f"Write a single plain-English sentence explaining this result. "
-                       f"Include the actual number from the result. No markdown.")
-        }]
+        messages=[{"role": "user", "content": prompt}]
     )
     explanation = explanation_response.content[0].text.strip()
 
