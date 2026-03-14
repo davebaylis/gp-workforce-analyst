@@ -250,7 +250,13 @@ def run_query(question, workforce_df, pop_df, client):
 
     # Generate explanation AFTER we have the actual result
     try:
-        if isinstance(result, (int, float)):
+        if isinstance(result, float):
+            # Round floats sensibly — if it looks like a proportion, show as percentage
+            if 0 < result < 1:
+                result_str = f"{result * 100:.1f}%"
+            else:
+                result_str = f"{result:,.1f}"
+        elif isinstance(result, int):
             result_str = f"{result:,}"
         elif hasattr(result, "to_string"):
             result_str = result.to_string(index=False)[:500]
