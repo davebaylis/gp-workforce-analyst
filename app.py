@@ -217,6 +217,8 @@ Return ONLY a JSON object with these keys:
 - For staff per 1,000 population: join workforce headcount to pop_df on ICB_CODE == ORG_CODE
 - For charts use plotly.express as px, store figure in variable `fig`
 - ICB_CODE in workforce_df matches ORG_CODE in pop_df directly
+- When filtering pop_df by specific age, use SEX.isin(['MALE','FEMALE']) not SEX=='ALL' — the ALL row only exists for total population
+- Always convert AGE to numeric before comparing: pd.to_numeric(pop_df['AGE'], errors='coerce')
 - Return ONLY valid JSON, no markdown, no backticks
 """
 
