@@ -154,13 +154,12 @@ def load_practice():
         r = requests.get(PRACTICE_URL, timeout=120)
         r.raise_for_status()
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        csv_files = [n for n in z.namelist() if n.endswith('.csv')]
-        csv_name = max(csv_files, key=lambda n: z.getinfo(n).file_size)
+        # Specifically pick the Detailed CSV
+        csv_name = [n for n in z.namelist() if 'Detailed' in n and n.endswith('.csv')][0]
         df = pd.read_csv(z.open(csv_name), encoding='latin-1', low_memory=False)
-    # Show columns in the app so we can see what's there
-    st.write("Files in zip:", z.namelist())
-    st.write("Columns:", df.columns.tolist()[:20])
-    st.stop()
+    for col in ['ICB_CODE', 'PCN_CODE', 'PRAC_CODE']:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip()
     return df
 
 
