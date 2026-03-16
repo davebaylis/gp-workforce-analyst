@@ -110,6 +110,8 @@ SW_ICB_CODES = list(ORG_REFERENCE.keys())
 # ── Data URLs — update these each month with the new release URLs ─────────────
 WORKFORCE_URL = "https://files.digital.nhs.uk/A7/B0FFAB/GPWIndividualCSV.012026.zip"
 POPULATION_URL = "https://files.digital.nhs.uk/8B/19FFEE/gp-reg-pat-prac-sing-age-regions.zip"
+PRACTICE_URL = "https://files.digital.nhs.uk/EC/203865/GPWPracticeCSV.012026.zip"
+
 
 
 @st.cache_data
@@ -145,6 +147,20 @@ def load_population():
     df['NUMBER_OF_PATIENTS'] = pd.to_numeric(df['NUMBER_OF_PATIENTS'], errors='coerce')
     return df
 
+@st.cache_data
+def load_practice():
+    import zipfile, io, requests
+    with st.spinner("Loading practice data from NHS England..."):
+        r = requests.get(PRACTICE_URL, timeout=120)
+        r.raise_for_status()
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        csv_name = [n for n in z.namelist() if n.endswith('.csv')][0]
+        df = pd.read_csv(z.open(csv_name), encoding='latin-1', low_memory=False)
+    df['ICB_CODE'] = df['ICB_CODE'].astype(str).str.strip()
+    df['PCN_CODE'] = df['PCN_CODE'].astype(str).str.strip()
+    df['PRAC_CODE'] = df['PRAC_CODE'].astype(str).str.strip()
+    return df
+
 
 @st.cache_data
 def build_summary_population(_pop_df):
@@ -161,7 +177,7 @@ def build_summary_population(_pop_df):
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
-def build_system_prompt(workforce_df, pop_df):
+def build_system_prompt(workforce_df, pop_df, practice_df):
     org_summary = "\n".join(
         f"  {code}: {org['name']} (aliases: {', '.join(org['aliases'][:4])})"
         for code, org in ORG_REFERENCE.items()
@@ -189,6 +205,20 @@ ORG_TYPE is always 'ICB' in this dataset.
 SEX values: ALL, MALE, FEMALE.
 AGE values: single years 0-95+, plus 'ALL' for total.
 To get total population per ICB: filter SEX=='ALL' and AGE=='ALL'.
+
+## Dataset 3: practice_df — GP Workforce and Patients by Practice, January 2026
+Shape: 6,172 rows. Each row = one GP practice.
+Key geography columns: PRAC_CODE, PRAC_NAME, PCN_CODE, PCN_NAME, ICB_CODE, ICB_NAME
+Patient columns: TOTAL_PATIENTS, TOTAL_MALE, TOTAL_FEMALE
+Patient age bands: MALE_PATIENTS_0TO4, MALE_PATIENTS_65TO74, FEMALE_PATIENTS_85PLUS etc.
+Workforce headcount columns use pattern: TOTAL_[GROUP]_HC e.g. TOTAL_GP_HC, TOTAL_NURSES_HC
+Workforce FTE columns use pattern: TOTAL_[GROUP]_FTE e.g. TOTAL_GP_FTE, TOTAL_NURSES_FTE
+Role breakdown examples: TOTAL_GP_SAL_BY_PRAC_HC (salaried GPs), TOTAL_GP_PTNR_PROV_HC (partners)
+Age band columns: TOTAL_GP_HC_UNDER30, TOTAL_GP_HC_30TO34 ... TOTAL_GP_HC_70PLUS
+Use this dataset for practice-level, PCN-level, or ICB-level questions 
+that don't require exact individual ages or median calculations.
+Use workforce_df only when exact individual ages or median calculations are needed.
+Use pop_df only when you need single-year-of-age population breakdowns.
 
 ## South West ICB total populations:
 {pop_summary}
@@ -224,11 +254,11 @@ Return ONLY a JSON object with these keys:
 
 
 # ── Query runner ──────────────────────────────────────────────────────────────
-def run_query(question, workforce_df, pop_df, client):
+def run_query(question, workforce_df, pop_df, practice_df, client):
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=2000,
-        system=build_system_prompt(workforce_df, pop_df),
+        system=build_system_prompt(workforce_df, pop_df, practice_df),
         messages=[{"role": "user", "content": question}]
     )
 
@@ -244,6 +274,7 @@ def run_query(question, workforce_df, pop_df, client):
     exec_globals = {
         "workforce_df": workforce_df,
         "pop_df": pop_df,
+        "practice_df": practice_df,
         "pd": pd, "px": px, "go": go
     }
 
@@ -313,9 +344,8 @@ def main():
     # Load data
     workforce_df = load_workforce()
     pop_df = load_population()
+    practice_df = load_practice()
     pop_summary = build_summary_population(pop_df)
-
-    # Anthropic client
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
     # Filter to SW
@@ -382,9 +412,7 @@ def main():
 
         with st.spinner("Analysing..."):
             try:
-                result, fig, explanation = run_query(
-                    question, workforce_df, pop_df, client
-                )
+                result, fig, explanation = run_query(question, workforce_df, pop_df, practice_df, client)
 
                 st.markdown(f"""
                 <div class="result-box">
