@@ -154,11 +154,14 @@ def load_practice():
         r = requests.get(PRACTICE_URL, timeout=120)
         r.raise_for_status()
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        csv_name = [n for n in z.namelist() if n.endswith('.csv')][0]
+        # Find the largest CSV in the zip (the main data file)
+        csv_files = [n for n in z.namelist() if n.endswith('.csv')]
+        csv_name = max(csv_files, key=lambda n: z.getinfo(n).file_size)
         df = pd.read_csv(z.open(csv_name), encoding='latin-1', low_memory=False)
-    df['ICB_CODE'] = df['ICB_CODE'].astype(str).str.strip()
-    df['PCN_CODE'] = df['PCN_CODE'].astype(str).str.strip()
-    df['PRAC_CODE'] = df['PRAC_CODE'].astype(str).str.strip()
+    # Only clean columns that exist
+    for col in ['ICB_CODE', 'PCN_CODE', 'PRAC_CODE']:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip()
     return df
 
 
