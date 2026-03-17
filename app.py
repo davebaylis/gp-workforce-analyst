@@ -237,8 +237,10 @@ Return ONLY a JSON object with these keys:
   "explanation": 1-2 sentence plain English explanation of the result
 
 ## Rules:
+- Unless otherwise instructed, all Workforce results should be presented in FTE
 - Headcount = count rows (len() or .shape[0]) NOT unique UNIQUE_IDENTIFIER values
 - FTE = sum FTE column in workforce_df
+- Please treat WTE questions as FTE
 - result must be a single value (int, float, DataFrame, or Series) — NEVER a dict or tuple
 - For simple count questions, result = a single integer
 - For comparison questions, result = a DataFrame with named columns
@@ -246,6 +248,8 @@ Return ONLY a JSON object with these keys:
 - GPs = STAFF_GROUP == 'GP'
 - South West = ICB_CODE.isin({SW_ICB_CODES})
 - For staff per 1,000 population: join workforce headcount to pop_df on ICB_CODE == ORG_CODE
+- Practice name searches must use case-insensitive matching: practice_df['PRAC_NAME'].str.contains('search term', case=False, na=False)
+- Never use exact string matching for practice or PCN names
 - For charts use plotly.express as px, store figure in variable `fig`
 - ICB_CODE in workforce_df matches ORG_CODE in pop_df directly
 - When filtering pop_df by specific age, use SEX.isin(['MALE','FEMALE']) not SEX=='ALL' — the ALL row only exists for total population
