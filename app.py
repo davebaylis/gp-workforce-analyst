@@ -387,7 +387,7 @@ def main():
 
     # Example questions
     examples = [
-        "List the PCN's in Devon, with Total Workforce"
+        "List the PCN's in Devon, with Total Workforce",
         "What is the median age of GPs in the South West?",
         "Compare GPs per 1,000 patients by ICB as a bar chart",
         "What is the gender breakdown of GPs in BNSSG?",
