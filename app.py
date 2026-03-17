@@ -242,6 +242,7 @@ Return ONLY a JSON object with these keys:
 - FTE = sum FTE column in workforce_df
 - Please treat WTE questions as FTE
 - result must be a single value (int, float, DataFrame, or Series) — NEVER a dict or tuple
+- Always round FTE/WTE values to 1 decimal place: round(value, 1)
 - For simple count questions, result = a single integer
 - For comparison questions, result = a DataFrame with named columns
 - Nurses = STAFF_GROUP == 'Nurses'
